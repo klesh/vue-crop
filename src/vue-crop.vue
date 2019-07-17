@@ -135,17 +135,24 @@ export default {
           let {x, y, w, h} = l.box;
           if (box.mode === 'resizing') {
             const {ax, ay} = l.box;
+            let dx = e.x - l.e.x;
+            let dy = e.y - l.e.y;
+            if (this.ratio) {
+              if (dx^2 > dy^2) {
+                dy = dx * this.ratio * (dy/Math.abs(dy));
+              } else {
+                dx = dy / this.ratio * (dx/Math.abs(dx));
+              }
+            }
             if (~ax) {
-              const mx = (e.x - vp.x - bg.x) / bg.zr;
+              const mx = (dx + l.e.x - vp.x - bg.x) / bg.zr;
               x = Math.min(mx, ax);
               w = Math.abs(mx - ax);
-              if (this.ratio) h = w / this.ratio;
             }
             if (~ay) {
-              const my = (e.y - vp.y - bg.y) / bg.zr;
+              const my = (dy + l.e.y - vp.y - bg.y) / bg.zr;
               y = Math.min(my, ay);
               h = Math.abs(my - ay);
-              if (this.ratio) w = h * this.ratio;
             }
           } else if (box.mode === 'moving') {
             x = l.box.x + (e.x - l.e.x) / bg.zr;
@@ -161,10 +168,8 @@ export default {
       const {box, ratio} = this;
       box.ax = -1;
       box.ay = -1;
-      if (!ratio || !~direction.indexOf('w')) {
-        if (~direction.indexOf('n')) box.ay = box.y + box.h;
-        if (~direction.indexOf('s')) box.ay = box.y;
-      }
+      if (~direction.indexOf('n')) box.ay = box.y + box.h;
+      if (~direction.indexOf('s')) box.ay = box.y;
       if (~direction.indexOf('w')) box.ax = box.x + box.w;
       if (~direction.indexOf('e')) box.ax = box.x;
       box.mode = 'resizing';
