@@ -1,5 +1,5 @@
 <template>
-  <VueCrop class="crop" src="http://2paragraphs.com/wp-content/uploads/2014/03/lenna.jpg"></VueCrop>
+  <VueCrop class="crop" src="http://2paragraphs.com/wp-content/uploads/2014/03/lenna.jpg" :ratio="1"></VueCrop>
 </template>
 
 <style>
@@ -18,5 +18,5 @@ import VueCrop from './vue-crop.vue';
 export default {
   name: 'Example',
   components: {VueCrop}
-}
+};
 </script>

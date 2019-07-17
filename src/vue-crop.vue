@@ -1,19 +1,20 @@
 <template>
-  <div class="vp" @mousewheel="mouseWheel" @mousedown="mouseDown" @mouseup="mouseUp" @mousemove="mouseMove" @contextmenu.prevent>
+  <div class="vp" @mousewheel="mouseWheel" @mousedown="mouseDown"
+    @mouseup="mouseUp" @mousemove="mouseMove" @contextmenu.prevent>
     <div class="movable bgoverlap" :style="bgOverlapStyle" />
     <img class="movable" :src="src" :style="bgImageStyle" draggable="false">
     <div v-if="box.actived" :style="boxStyle" class="movable box">
-      <div class="vp fill">
+      <div class="vp fill" @mousedown.left="setMoving">
         <img class="movable" :src="src" :style="boxImageStyle" draggable="false">
       </div>
-      <div class="indicator top left" @mousedown.left="e => setResizing(e, 'nw')"></div>
-      <div class="indicator top center" @mousedown.left="e => setResizing(e, 'n')"></div>
-      <div class="indicator top right" @mousedown.left="e => setResizing(e, 'ne')"></div>
-      <div class="indicator middle left " @mousedown.left="e => setResizing(e, 'w')"></div>
-      <div class="indicator middle right " @mousedown.left="e => setResizing(e, 'e')"></div>
-      <div class="indicator bottom left" @mousedown.left="e => setResizing(e, 'sw')"></div>
-      <div class="indicator bottom center" @mousedown.left="e => setResizing(e, 's')"></div>
-      <div class="indicator bottom right" @mousedown.left="e => setResizing(e, 'se')"></div>
+      <div class="indicator top left" @mousedown.left="setResizing('nw')"></div>
+      <div class="indicator top center" @mousedown.left="setResizing('n')"></div>
+      <div class="indicator top right" @mousedown.left="setResizing('ne')"></div>
+      <div class="indicator middle left " @mousedown.left="setResizing('w')"></div>
+      <div class="indicator middle right " @mousedown.left="setResizing('e')"></div>
+      <div class="indicator bottom left" @mousedown.left="setResizing('sw')"></div>
+      <div class="indicator bottom center" @mousedown.left="setResizing('s')"></div>
+      <div class="indicator bottom right" @mousedown.left="setResizing('se')"></div>
     </div>
   </div>
 </template>
@@ -23,7 +24,8 @@ export default {
   name: 'VueCrop',
   props: {
     src: {type: String},
-    value: {type: Object}
+    value: {type: Object},
+    ratio: {type: Number}
   },
   computed: {
     bgOverlapStyle() {
@@ -39,12 +41,12 @@ export default {
       return {
         ...this.bgOverlapStyle,
         opacity: this.box.actived ? 0.6 : 1
-      }
+      };
     },
     boxStyle() {
       const {box, bg} = this;
       return {
-        top: `${box.y * bg.zr + bg.y  - 1}px`,
+        top: `${box.y * bg.zr + bg.y - 1}px`,
         left: `${box.x * bg.zr + bg.x - 1}px`,
         width: `${box.w * bg.zr}px`,
         height: `${box.h * bg.zr}px`,
@@ -97,23 +99,22 @@ export default {
           const x = (vw - w) / 2;
           const y = (vh - h) / 2;
           resolve({x, y, w, h, ow, oh, or, zr: 1});
-        }
+        };
+        img.onerror = reject;
         img.src = this.src;
       });
     },
     mouseWheel(e) {
-      let {x, y, w, h, zr, ...rest} = this.bg;
-      const {x: vx, y: vy} = this.vp;
+      const {bg, vp} = this;
       // zoom image
-      const oldWidth = w;
-      w = w + e.wheelDeltaY;
-      h = w / rest.or;
+      const oldWidth = bg.w;
+      bg.w += e.wheelDeltaY;
+      bg.h = bg.w / bg.or;
       // move background with respect to cursor position
-      const r = w / oldWidth - 1;
-      x -= (e.x - vx - x) * r;
-      y -= (e.y - vy - y) * r;
-      zr = w / rest.ow;
-      this.bg = {x, y, w, h, zr, ...rest};
+      const r = bg.w / oldWidth - 1;
+      bg.x -= (e.x - vp.x - bg.x) * r;
+      bg.y -= (e.y - vp.y - bg.y) * r;
+      bg.zr = bg.w / bg.ow;
     },
     mouseDown(e) {
       this.initials[e.button] = {e, bg: {...this.bg}, box: {...this.box}};
@@ -123,42 +124,56 @@ export default {
       this.box.mode = null;
     },
     mouseMove(e) {
-      const [l, c, r] = this.initials;
+      const [l, , r] = this.initials;
       const {bg, box, vp} = this;
       if (r) { // moving canvas
         bg.x = r.bg.x + e.x - r.e.x;
         bg.y = r.bg.y + e.y - r.e.y;
       }
       if (l) { // moving / resizing box
-        if (box.mode === 'resizing') {
-          let {x, y, w, h, ...rest} = l.box;
-          const {ax, ay} = rest;
-          if (ax) {
-            const mx = (e.x - vp.x - bg.x) * bg.ow / bg.w;
-            x = Math.min(mx, ax);
-            w = Math.abs(mx - ax);
+        if (box.mode) {
+          let {x, y, w, h} = l.box;
+          if (box.mode === 'resizing') {
+            const {ax, ay} = l.box;
+            if (~ax) {
+              const mx = (e.x - vp.x - bg.x) / bg.zr;
+              x = Math.min(mx, ax);
+              w = Math.abs(mx - ax);
+              if (this.ratio) h = w / this.ratio;
+            }
+            if (~ay) {
+              const my = (e.y - vp.y - bg.y) / bg.zr;
+              y = Math.min(my, ay);
+              h = Math.abs(my - ay);
+              if (this.ratio) w = h * this.ratio;
+            }
+          } else if (box.mode === 'moving') {
+            x = l.box.x + (e.x - l.e.x) / bg.zr;
+            y = l.box.y + (e.y - l.e.y) / bg.zr;
+            x = Math.min(Math.max(0, x), bg.ow - box.w);
+            y = Math.min(Math.max(0, y), bg.oh - box.h);
           }
-          if (ay) {
-            const my = (e.y - vp.y - bg.y) * bg.oh / bg.h;
-            y = Math.min(my, ay);
-            h = Math.abs(my - ay);
-          }
-          this.box = {x, y, w, h, ...rest};
+          this.box = {...this.box, x, y, w, h};
         }
       }
     },
-    setResizing(e, direction) {
-      const {box} = this;
-      box.ax = 0;
-      box.ay = 0;
-      if (~direction.indexOf('n')) box.ay = box.y + box.h;
-      if (~direction.indexOf('s')) box.ay = box.y;
+    setResizing(direction) {
+      const {box, ratio} = this;
+      box.ax = -1;
+      box.ay = -1;
+      if (!ratio || !~direction.indexOf('w')) {
+        if (~direction.indexOf('n')) box.ay = box.y + box.h;
+        if (~direction.indexOf('s')) box.ay = box.y;
+      }
       if (~direction.indexOf('w')) box.ax = box.x + box.w;
       if (~direction.indexOf('e')) box.ax = box.x;
       box.mode = 'resizing';
+    },
+    setMoving() {
+      this.box.mode = 'moving';
     }
   }
-}
+};
 </script>
 
 
