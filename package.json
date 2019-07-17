@@ -1,0 +1,65 @@
+{
+  "name": "vue-crop",
+  "version": "0.1.0",
+  "description": "Vue.js component for photo cropping with zooming/dragging support",
+  "author": "Klesh Wong <kleshwong@gmail.com>",
+  "homepage": "https://github.com/klesh/vue-crop",
+  "license": "MIT",
+  "contributors": [
+    {
+      "name": "Klesh Wong",
+      "web": "https://kleshwong.com"
+    }
+  ],
+  "maintainer": [
+    {
+      "name": "Klesh Wong",
+      "email": "kleshwong@gmail.com",
+      "web": "https://kleshwong.com"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com:klesh/vue-crop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/klesh/vue-crop/issues"
+  },
+  "keywords": [
+    "crop",
+    "Vue",
+    "labelling"
+  ],
+
+  "main": "dist/vue-crop.ssr.js",
+  "module": "dist/vue-crop.esm.js",
+  "unpkg": "dist/vue-crop.min.js",
+
+  "files": [
+    "dist/*",
+    "src/**/*.vue"
+  ],
+
+  "scripts": {
+    "build": "cross-env NODE_ENV=production rollup --config build/rollup.config.js",
+    "build:ssr": "cross-env NODE_ENV=production rollup --config build/rollup.config.js --format cjs",
+    "build:es": "cross-env NODE_ENV=production rollup --config build/rollup.config.js --format es",
+    "build:unpkg": "cross-env NODE_ENV=production rollup --config build/rollup.config.js --format iife"
+  },
+
+  "dependencies": {
+  },
+
+  "devDependencies": {
+    "cross-env": "^5.2.0",
+    "minimist": "^1.2.0",
+    "rollup": "^1.12.1",
+    "rollup-plugin-buble": "^0.19.6",
+    "rollup-plugin-commonjs": "^10.0.0",
+    "rollup-plugin-replace": "^2.2.0",
+    "rollup-plugin-terser": "^4.0.4",
+    "rollup-plugin-vue": "^5.0.0",
+    "vue": "^2.6.10",
+    "vue-template-compiler": "^2.6.10"
+  }
+}
