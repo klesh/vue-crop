@@ -1,5 +1,10 @@
 <template>
-  <VueCrop class="crop" src="http://2paragraphs.com/wp-content/uploads/2014/03/lenna.jpg" :ratio="1"></VueCrop>
+  <div>
+    <VueCrop ref="crop" class="crop" src="http://2paragraphs.com/wp-content/uploads/2014/03/lenna.jpg" :ratio="1" v-model="box"></VueCrop>
+    x: <input type="number" v-model="box.x">
+    y: <input type="number" v-model="box.y">
+    <button type="button" @click="changePosition">change position</button>
+  </div>
 </template>
 
 <style>
@@ -17,6 +22,16 @@ import VueCrop from './vue-crop.vue';
 
 export default {
   name: 'Example',
-  components: {VueCrop}
+  components: {VueCrop},
+  data() {
+    return {
+      box: {x: 10, y: 10, w: 100, h: 100}
+    }
+  },
+  methods: {
+    changePosition() {
+      this.$refs.crop.reload();
+    }
+  }
 };
 </script>

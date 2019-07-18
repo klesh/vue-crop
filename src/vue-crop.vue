@@ -4,7 +4,7 @@
     <div class="movable bgoverlap" :style="bgOverlapStyle" />
     <img class="movable" :src="src" :style="bgImageStyle" draggable="false">
     <div v-if="box.actived" :style="boxStyle" class="movable box">
-      <div class="vp fill" @mousedown.left="setMoving">
+      <div class="vp fill" @mousedown.left="setMoving" @dbclick="done">
         <img class="movable" :src="src" :style="boxImageStyle" draggable="false">
       </div>
       <div class="indicator top left" @mousedown.left="setResizing('nw')"></div>
@@ -67,15 +67,17 @@ export default {
       initials: [],
       vp: { x: 0, y: 0, w: 0, h: 0}, // viewport
       bg: { x: 0, y: 0, w: 0, h: 0, ow: null, oh: null, or: null, zr: 1 }, // background image
-      box: { x: 10, y: 10, w: 100, h: 100, ax: 0, ay: 0, actived: true, mode: null },
+      box: { x: 10, y: 10, w: 100, h: 100, ax: 0, ay: 0, actived: false, mode: null },
     };
   },
   async mounted() {
-    this.vp = this.getViewPortData();
-    this.bg = await this.getBgData();
+    const reload = () => this.reload();
+    reload();
+    this.$watch('value', reload, {deep: true});
+    this.$watch('src', reload);
   },
   methods: {
-    getViewPortData() {
+    reload() {
       // caculate viewport offset to the page
       let parent = this.$el;
       let [x, y] = [0, 0];
@@ -84,25 +86,29 @@ export default {
         y += parent.offsetTop;
         parent = parent.offsetParent;
       }
-      return {x, y, w: this.$el.offsetWidth, h: this.$el.offsetHeight};
-    },
-    async getBgData() {
+      this.vp = {x, y, w: this.$el.offsetWidth, h: this.$el.offsetHeight};
+
       // get image original width/height
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          const {width: ow, height: oh} = img;
-          const or = ow / oh;
-          const {w: vw, h: vh} = this.vp;
-          const w = Math.min(ow, vw);
-          const h = w / or;
-          const x = (vw - w) / 2;
-          const y = (vh - h) / 2;
-          resolve({x, y, w, h, ow, oh, or, zr: 1});
-        };
-        img.onerror = reject;
-        img.src = this.src;
-      });
+      const img = new Image();
+      img.onload = () => {
+        const {width: ow, height: oh} = img;
+        const or = ow / oh;
+        const {w: vw, h: vh} = this.vp;
+        const w = Math.min(ow, vw);
+        const h = w / or;
+        const x = (vw - w) / 2;
+        const y = (vh - h) / 2;
+        this.bg = {x, y, w, h, ow, oh, or, zr: 1};
+      };
+      img.src = this.src;
+
+      // load box
+      if (this.value) {
+        const{x, y, w, h} = this.value;
+        this.box = {...this.box, x, y, w, h, actived: true};
+      } else {
+        this.box.actived = false;
+      }
     },
     mouseWheel(e) {
       const {bg, vp} = this;
@@ -130,30 +136,41 @@ export default {
         bg.x = r.bg.x + e.x - r.e.x;
         bg.y = r.bg.y + e.y - r.e.y;
       }
-      if (l) { // moving / resizing box
+      if (l) { // creating / moving / resizing box
+        if (!box.actived && Math.abs(e.x - l.e.x) > 5 && Math.abs(e.y - l.e.y) > 5) {
+          const ax = (l.e.x - vp.x - bg.x) / bg.zr;
+          const ay = (l.e.y - vp.y - bg.y) / bg.zr;
+          if (ax > 0 && ay > 0) {
+            this.box = {ax, ay, mode: 'resizing', actived: true};
+          }
+        }
         if (box.mode) {
           let {x, y, w, h} = l.box;
           if (box.mode === 'resizing') {
-            const {ax, ay} = l.box;
-            let dx = e.x - l.e.x;
-            let dy = e.y - l.e.y;
-            if (this.ratio) {
-              if (dx^2 > dy^2) {
-                dy = dx * this.ratio * (dy/Math.abs(dy));
-              } else {
-                dx = dy / this.ratio * (dx/Math.abs(dx));
-              }
-            }
+            const {ax, ay} = box;
+            let mx, my
             if (~ax) {
-              const mx = (dx + l.e.x - vp.x - bg.x) / bg.zr;
+              mx = (e.x - vp.x - bg.x) / bg.zr;
               x = Math.min(mx, ax);
               w = Math.abs(mx - ax);
             }
             if (~ay) {
-              const my = (dy + l.e.y - vp.y - bg.y) / bg.zr;
+              my = (e.y - vp.y - bg.y) / bg.zr;
               y = Math.min(my, ay);
               h = Math.abs(my - ay);
             }
+            if (this.ratio) {
+              if (Math.abs(e.x - l.e.x) > Math.abs(e.y - l.e.y)) {
+                const nh = w / this.ratio;
+                if (my < ay) y += h - nh;
+                h = nh;
+              } else {
+                const nw = h * this.ratio;
+                if (mx < ax) x += w - nw;
+                w = nw;
+              }
+            }
+            if (x < 0 || x + w > bg.ow || y < 0 || y + h > bg.oh) return;
           } else if (box.mode === 'moving') {
             x = l.box.x + (e.x - l.e.x) / bg.zr;
             y = l.box.y + (e.y - l.e.y) / bg.zr;
@@ -176,6 +193,10 @@ export default {
     },
     setMoving() {
       this.box.mode = 'moving';
+    },
+    done() {
+      const {x, y, w, h} = this.box;
+      this.$emit('input', {...this.value, x, y, w, h});
     }
   }
 };
