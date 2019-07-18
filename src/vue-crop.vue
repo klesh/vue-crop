@@ -4,7 +4,7 @@
     <div class="movable bgoverlap" :style="bgOverlapStyle" />
     <img class="movable" :src="src" :style="bgImageStyle" draggable="false">
     <div v-if="box.actived" :style="boxStyle" class="movable box">
-      <div class="vp fill" @mousedown.left="setMoving" @dblclick="done">
+      <div class="vp fill" @mousedown.left="setMoving" @dblclick="ok">
         <img class="movable" :src="src" :style="boxImageStyle" draggable="false">
       </div>
       <div class="indicator top left" @mousedown.left="setResizing('nw')"></div>
@@ -70,11 +70,10 @@ export default {
       box: { x: 10, y: 10, w: 100, h: 100, ax: 0, ay: 0, actived: false, mode: null },
     };
   },
-  async mounted() {
-    const reload = () => this.reload();
-    reload();
-    this.$watch('value', reload, {deep: true});
-    this.$watch('src', reload);
+  mounted() {
+    this.reload(true);
+    this.$watch('value', () => this.reload(), {deep: true});
+    this.$watch('src', () => this.reload());
   },
   methods: {
     reload() {
@@ -89,22 +88,25 @@ export default {
       this.vp = {x, y, w: this.$el.offsetWidth, h: this.$el.offsetHeight};
 
       // get image original width/height
-      const img = new Image();
-      img.onload = () => {
-        let {x, y, w, h, zr} = this.bg;
-        const {width: ow, height: oh} = img;
-        const or = ow / oh;
-        const {w: vw, h: vh} = this.vp;
-        if (!w) {
-          w = Math.min(ow, vw);
-          h = w / or;
-          x = (vw - w) / 2;
-          y = (vh - h) / 2;
-          zr = 1;
+      const i = new Image();
+      i.onload = () => {
+        const {bg, vp} = this;
+        bg.ow = i.width;
+        bg.oh = i.height;
+        bg.or = bg.ow / bg.oh;
+        vp.r = vp.w / vp.h;
+        if (bg.or > vp.r)  {
+          bg.w = Math.min(bg.ow, vp.w);
+          bg.h = bg.w / bg.or;
+        } else {
+          bg.h = Math.min(bg.oh, vp.h);
+          bg.w = bg.h * bg.or;
         }
-        this.bg = {x, y, w, h, ow, oh, or, zr};
+        bg.zr = bg.w / bg.ow;
+        bg.x = (vp.w - bg.w) / 2;
+        bg.y = (vp.h - bg.h) / 2;
       };
-      img.src = this.src;
+      i.src = this.src;
 
       // load box
       if (this.value) {
@@ -186,7 +188,7 @@ export default {
       }
     },
     setResizing(direction) {
-      const {box, ratio} = this;
+      const {box} = this;
       box.ax = -1;
       box.ay = -1;
       if (~direction.indexOf('n')) box.ay = box.y + box.h;
@@ -198,7 +200,7 @@ export default {
     setMoving() {
       this.box.mode = 'moving';
     },
-    done() {
+    ok() {
       const {x, y, w, h} = this.box;
       this.$emit('input', {...this.value, x, y, w, h});
       this.$emit('change');
