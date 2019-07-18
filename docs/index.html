@@ -4,8 +4,69 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>vue-crop</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script></script>
+  <script src="https://raw.githubusercontent.com/klesh/vue-crop/master/dist/vue-crop.min.js"></script>
+  <style>
+    .crop {
+      width: 60%;
+      height: 600px;
+      border: solid 1px black;
+      margin: auto;
+      margin-top: 100px;
+    }
+    input {
+      width: 6em;
+    }
+  </style>
 </head>
 <body>
-  this is a test
+  <div id="app">
+    <VueCrop ref="crop" class="crop" :src="images[imageIndex]" :ratio="ratio" v-model="box"></VueCrop>
+    <div style="text-align: center">
+      Ratio(w/h): <input type="number" v-model.number="ratio"/>
+      <template v-if="box">
+        x: <input type="number" v-model.number="box.x">
+        y: <input type="number" v-model.number="box.y">
+        w: <input type="number" v-model.number="box.w">
+        h: <input type="number" v-model.number="box.h">
+        <button type="button" @click="ok">Ok</button>
+        <button type="button" @click="cancel">Cancel</button>
+      </template>
+      <button v-else type="button" @click="setBox">Set box</button>
+      <button type="button" @click="changeImage">Change image</button>
+    </div>
+    <div>
+    </div>
+  </div>
+  <script>
+    var app = new Vue({
+      el: '#app',
+      components: {VueCrop},
+      data: {
+        images: [
+          'https://images.unsplash.com/flagged/photo-1563274289-72ab8547b6fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=700&q=80',
+          'https://images.unsplash.com/photo-1556909172-bd5315ff61a0?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1350&q=80'
+        ],
+        ratio: 1,
+        box: null,
+        imageIndex: 0
+      },
+      methods: {
+        ok() {
+          this.$refs.crop.ok();
+        },
+        cancel() {
+          this.box = null;
+        },
+        setBox() {
+          this.box = {x: 10, y: 10, w: 100, h: 100};
+        },
+        changeImage() {
+          this.imageIndex = (this.imageIndex + 1) % this.images.length;
+          this.box = null;
+        }
+      }
+    });
+  </script>
 </body>
 </html>
