@@ -1,5 +1,5 @@
 {
-  "name": "vue-crop",
+  "name": "@klesh/vue-crop",
   "version": "0.1.0",
   "description": "Light-weight Vue.js component for photo cropping with zooming/dragging support",
   "author": "Klesh Wong <kleshwong@gmail.com>",
