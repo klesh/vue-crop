@@ -1,9 +1,14 @@
 <template>
   <div>
-    <VueCrop ref="crop" class="crop" src="http://2paragraphs.com/wp-content/uploads/2014/03/lenna.jpg" :ratio="1" v-model="box"></VueCrop>
-    x: <input type="number" v-model="box.x">
-    y: <input type="number" v-model="box.y">
-    <button type="button" @click="changePosition">change position</button>
+    <VueCrop ref="crop" class="crop" src="http://2paragraphs.com/wp-content/uploads/2014/03/lenna.jpg" :ratio="ratio" v-model="box"></VueCrop>
+    <div style="text-align: center">
+      x: <input type="number" v-model.number="box.x">
+      y: <input type="number" v-model.number="box.y">
+      w: <input type="number" v-model.number="box.w">
+      h: <input type="number" v-model.number="box.h">
+      ratio(w/h): <input type="number" v-model.number="ratio"/>
+      <button type="button" @click="done">Done</button>
+    </div>
   </div>
 </template>
 
@@ -15,6 +20,9 @@
   margin: auto;
   margin-top: 100px;
 }
+input {
+  width: 6em;
+}
 </style>
 
 <script>
@@ -25,12 +33,13 @@ export default {
   components: {VueCrop},
   data() {
     return {
+      ratio: 1,
       box: {x: 10, y: 10, w: 100, h: 100}
     }
   },
   methods: {
-    changePosition() {
-      this.$refs.crop.reload();
+    done() {
+      this.$refs.crop.done();
     }
   }
 };

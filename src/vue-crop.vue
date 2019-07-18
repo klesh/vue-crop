@@ -4,7 +4,7 @@
     <div class="movable bgoverlap" :style="bgOverlapStyle" />
     <img class="movable" :src="src" :style="bgImageStyle" draggable="false">
     <div v-if="box.actived" :style="boxStyle" class="movable box">
-      <div class="vp fill" @mousedown.left="setMoving" @dbclick="done">
+      <div class="vp fill" @mousedown.left="setMoving" @dblclick="done">
         <img class="movable" :src="src" :style="boxImageStyle" draggable="false">
       </div>
       <div class="indicator top left" @mousedown.left="setResizing('nw')"></div>
@@ -91,14 +91,18 @@ export default {
       // get image original width/height
       const img = new Image();
       img.onload = () => {
+        let {x, y, w, h, zr} = this.bg;
         const {width: ow, height: oh} = img;
         const or = ow / oh;
         const {w: vw, h: vh} = this.vp;
-        const w = Math.min(ow, vw);
-        const h = w / or;
-        const x = (vw - w) / 2;
-        const y = (vh - h) / 2;
-        this.bg = {x, y, w, h, ow, oh, or, zr: 1};
+        if (!w) {
+          w = Math.min(ow, vw);
+          h = w / or;
+          x = (vw - w) / 2;
+          y = (vh - h) / 2;
+          zr = 1;
+        }
+        this.bg = {x, y, w, h, ow, oh, or, zr};
       };
       img.src = this.src;
 
@@ -197,6 +201,7 @@ export default {
     done() {
       const {x, y, w, h} = this.box;
       this.$emit('input', {...this.value, x, y, w, h});
+      this.$emit('change');
     }
   }
 };
