@@ -6,10 +6,7 @@
   "homepage": "https://github.com/klesh/vue-crop",
   "license": "MIT",
   "contributors": [
-    {
-      "name": "Klesh Wong",
-      "web": "https://kleshwong.com"
-    }
+    "Klesh Wong (https://kleshwong.com)"
   ],
   "maintainer": [
     {
@@ -20,7 +17,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com:klesh/vue-crop.git"
+    "url": "git+ssh://git@github.com/klesh/vue-crop.git"
   },
   "bugs": {
     "url": "https://github.com/klesh/vue-crop/issues"
@@ -56,5 +53,8 @@
     "rollup-plugin-vue": "^5.0.0",
     "vue": "^2.6.10",
     "vue-template-compiler": "^2.6.10"
+  },
+  "directories": {
+    "doc": "docs"
   }
 }
