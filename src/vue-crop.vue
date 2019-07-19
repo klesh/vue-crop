@@ -1,10 +1,10 @@
 <template>
-  <div class="vp" @mousewheel="mouseWheel" @mousedown="mouseDown"
-    @mouseup="mouseUp" @mousemove="mouseMove" @contextmenu.prevent>
+  <div class="vp" @mousewheel.stop.prevent="mouseWheel" @mousedown="mouseDown"
+    @mouseup="mouseUp" @mousemove="mouseMove" @contextmenu.prevent @dblclick="box.actived = false">
     <div class="movable bgoverlap" :style="bgOverlapStyle" />
     <img class="movable" :src="src" :style="bgImageStyle" draggable="false">
     <div v-if="box.actived" :style="boxStyle" class="movable box">
-      <div class="vp fill" @mousedown.left="setMoving" @dblclick="ok">
+      <div class="vp fill" @mousedown.left="setMoving" @dblclick.stop="ok">
         <img class="movable" :src="src" :style="boxImageStyle" draggable="false">
       </div>
       <div class="indicator top left" @mousedown.left="setResizing('nw')"></div>
@@ -40,7 +40,7 @@ export default {
     bgImageStyle() {
       return {
         ...this.bgOverlapStyle,
-        opacity: this.box.actived ? 0.6 : 1
+        opacity: this.box.actived ? 0.3 : 1
       };
     },
     boxStyle() {
@@ -65,46 +65,36 @@ export default {
   data() {
     return {
       initials: [],
-      vp: { x: 0, y: 0, w: 0, h: 0}, // viewport
       bg: { x: 0, y: 0, w: 0, h: 0, ow: null, oh: null, or: null, zr: 1 }, // background image
       box: { x: 10, y: 10, w: 100, h: 100, ax: 0, ay: 0, actived: false, mode: null },
     };
   },
   mounted() {
-    this.reload(true);
     this.$watch('value', () => this.reload(), {deep: true});
     this.$watch('src', () => this.reload());
+    setTimeout(() => this.reload());
   },
   methods: {
     reload() {
-      // caculate viewport offset to the page
-      let parent = this.$el;
-      let [x, y] = [0, 0];
-      while (parent) {
-        x += parent.offsetLeft;
-        y += parent.offsetTop;
-        parent = parent.offsetParent;
-      }
-      this.vp = {x, y, w: this.$el.offsetWidth, h: this.$el.offsetHeight};
-
       // get image original width/height
       const i = new Image();
       i.onload = () => {
-        const {bg, vp} = this;
+        const {bg} = this;
+        if (bg.ow === i.width && bg.oh === i.height) return;
         bg.ow = i.width;
         bg.oh = i.height;
         bg.or = bg.ow / bg.oh;
-        vp.r = vp.w / vp.h;
-        if (bg.or > vp.r)  {
-          bg.w = Math.min(bg.ow, vp.w);
+        const r = this.$el.offsetWidth / this.$el.offsetHeight;
+        if (bg.or > r)  {
+          bg.w = Math.min(bg.ow, this.$el.offsetWidth);
           bg.h = bg.w / bg.or;
         } else {
-          bg.h = Math.min(bg.oh, vp.h);
+          bg.h = Math.min(bg.oh, this.$el.offsetHeight);
           bg.w = bg.h * bg.or;
         }
         bg.zr = bg.w / bg.ow;
-        bg.x = (vp.w - bg.w) / 2;
-        bg.y = (vp.h - bg.h) / 2;
+        bg.x = (this.$el.offsetWidth - bg.w) / 2;
+        bg.y = (this.$el.offsetHeight - bg.h) / 2;
       };
       i.src = this.src;
 
@@ -117,15 +107,17 @@ export default {
       }
     },
     mouseWheel(e) {
-      const {bg, vp} = this;
+      const {bg} = this;
       // zoom image
       const oldWidth = bg.w;
-      bg.w += e.wheelDeltaY;
+      const w = bg.w + e.wheelDeltaY;
+      if (w < 50) return;
+      bg.w = w;
       bg.h = bg.w / bg.or;
       // move background with respect to cursor position
       const r = bg.w / oldWidth - 1;
-      bg.x -= (e.x - vp.x - bg.x) * r;
-      bg.y -= (e.y - vp.y - bg.y) * r;
+      bg.x -= (e.offsetX) * r;
+      bg.y -= (e.offsetY) * r;
       bg.zr = bg.w / bg.ow;
     },
     mouseDown(e) {
@@ -137,15 +129,15 @@ export default {
     },
     mouseMove(e) {
       const [l, , r] = this.initials;
-      const {bg, box, vp} = this;
+      const {bg, box} = this;
       if (r) { // moving canvas
         bg.x = r.bg.x + e.x - r.e.x;
         bg.y = r.bg.y + e.y - r.e.y;
       }
-      if (l) { // creating / moving / resizing box
+      if (l && e.target.tagName === 'IMG') { // creating / moving / resizing box
         if (!box.actived && Math.abs(e.x - l.e.x) > 5 && Math.abs(e.y - l.e.y) > 5) {
-          const ax = (l.e.x - vp.x - bg.x) / bg.zr;
-          const ay = (l.e.y - vp.y - bg.y) / bg.zr;
+          const ax = l.e.offsetX / bg.zr;
+          const ay = l.e.offsetY / bg.zr;
           if (ax > 0 && ay > 0) {
             this.box = {ax, ay, mode: 'resizing', actived: true};
           }
@@ -156,12 +148,12 @@ export default {
             const {ax, ay} = box;
             let mx, my
             if (~ax) {
-              mx = (e.x - vp.x - bg.x) / bg.zr;
+              mx = e.offsetX / bg.zr;
               x = Math.min(mx, ax);
               w = Math.abs(mx - ax);
             }
             if (~ay) {
-              my = (e.y - vp.y - bg.y) / bg.zr;
+              my = e.offsetY / bg.zr;
               y = Math.min(my, ay);
               h = Math.abs(my - ay);
             }
@@ -185,7 +177,7 @@ export default {
           }
           this.box = {...this.box, x, y, w, h};
         }
-      }
+      };
     },
     setResizing(direction) {
       const {box} = this;

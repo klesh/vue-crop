@@ -43,7 +43,7 @@ var script = {
     },
     bgImageStyle: function bgImageStyle() {
       return Object.assign({}, this.bgOverlapStyle,
-        {opacity: this.box.actived ? 0.6 : 1});
+        {opacity: this.box.actived ? 0.3 : 1});
     },
     boxStyle: function boxStyle() {
       var ref = this;
@@ -71,7 +71,6 @@ var script = {
   data: function data() {
     return {
       initials: [],
-      vp: { x: 0, y: 0, w: 0, h: 0}, // viewport
       bg: { x: 0, y: 0, w: 0, h: 0, ow: null, oh: null, or: null, zr: 1 }, // background image
       box: { x: 10, y: 10, w: 100, h: 100, ax: 0, ay: 0, actived: false, mode: null },
     };
@@ -87,49 +86,37 @@ var script = {
     reload: function reload() {
       var this$1 = this;
 
-      // caculate viewport offset to the page
-      var parent = this.$el;
-      var ref = [0, 0];
-      var x = ref[0];
-      var y = ref[1];
-      while (parent) {
-        x += parent.offsetLeft;
-        y += parent.offsetTop;
-        parent = parent.offsetParent;
-      }
-      this.vp = {x: x, y: y, w: this.$el.offsetWidth, h: this.$el.offsetHeight};
-
       // get image original width/height
       var i = new Image();
       i.onload = function () {
         var ref = this$1;
         var bg = ref.bg;
-        var vp = ref.vp;
+        if (bg.ow === i.width && bg.oh === i.height) { return; }
         bg.ow = i.width;
         bg.oh = i.height;
         bg.or = bg.ow / bg.oh;
-        vp.r = vp.w / vp.h;
-        if (bg.or > vp.r)  {
-          bg.w = Math.min(bg.ow, vp.w);
+        var r = this$1.$el.offsetWidth / this$1.$el.offsetHeight;
+        if (bg.or > r)  {
+          bg.w = Math.min(bg.ow, this$1.$el.offsetWidth);
           bg.h = bg.w / bg.or;
         } else {
-          bg.h = Math.min(bg.oh, vp.h);
+          bg.h = Math.min(bg.oh, this$1.$el.offsetHeight);
           bg.w = bg.h * bg.or;
         }
         bg.zr = bg.w / bg.ow;
-        bg.x = (vp.w - bg.w) / 2;
-        bg.y = (vp.h - bg.h) / 2;
+        bg.x = (this$1.$el.offsetWidth - bg.w) / 2;
+        bg.y = (this$1.$el.offsetHeight - bg.h) / 2;
       };
       i.src = this.src;
 
       // load box
       if (this.value) {
-        var ref$1 = this.value;
-        var x$1 = ref$1.x;
-        var y$1 = ref$1.y;
-        var w = ref$1.w;
-        var h = ref$1.h;
-        this.box = Object.assign({}, this.box, {x: x$1, y: y$1, w: w, h: h, actived: true});
+        var ref = this.value;
+        var x = ref.x;
+        var y = ref.y;
+        var w = ref.w;
+        var h = ref.h;
+        this.box = Object.assign({}, this.box, {x: x, y: y, w: w, h: h, actived: true});
       } else {
         this.box.actived = false;
       }
@@ -137,15 +124,14 @@ var script = {
     mouseWheel: function mouseWheel(e) {
       var ref = this;
       var bg = ref.bg;
-      var vp = ref.vp;
       // zoom image
       var oldWidth = bg.w;
       bg.w += e.wheelDeltaY;
       bg.h = bg.w / bg.or;
       // move background with respect to cursor position
       var r = bg.w / oldWidth - 1;
-      bg.x -= (e.x - vp.x - bg.x) * r;
-      bg.y -= (e.y - vp.y - bg.y) * r;
+      bg.x -= (e.offsetX) * r;
+      bg.y -= (e.offsetY) * r;
       bg.zr = bg.w / bg.ow;
     },
     mouseDown: function mouseDown(e) {
@@ -162,15 +148,14 @@ var script = {
       var ref$1 = this;
       var bg = ref$1.bg;
       var box = ref$1.box;
-      var vp = ref$1.vp;
       if (r) { // moving canvas
         bg.x = r.bg.x + e.x - r.e.x;
         bg.y = r.bg.y + e.y - r.e.y;
       }
-      if (l) { // creating / moving / resizing box
+      if (l && e.target.tagName === 'IMG') { // creating / moving / resizing box
         if (!box.actived && Math.abs(e.x - l.e.x) > 5 && Math.abs(e.y - l.e.y) > 5) {
-          var ax = (l.e.x - vp.x - bg.x) / bg.zr;
-          var ay = (l.e.y - vp.y - bg.y) / bg.zr;
+          var ax = l.e.offsetX / bg.zr;
+          var ay = l.e.offsetY / bg.zr;
           if (ax > 0 && ay > 0) {
             this.box = {ax: ax, ay: ay, mode: 'resizing', actived: true};
           }
@@ -186,12 +171,12 @@ var script = {
             var ay$1 = box.ay;
             var mx, my;
             if (~ax$1) {
-              mx = (e.x - vp.x - bg.x) / bg.zr;
+              mx = e.offsetX / bg.zr;
               x = Math.min(mx, ax$1);
               w = Math.abs(mx - ax$1);
             }
             if (~ay$1) {
-              my = (e.y - vp.y - bg.y) / bg.zr;
+              my = e.offsetY / bg.zr;
               y = Math.min(my, ay$1);
               h = Math.abs(my - ay$1);
             }
@@ -215,8 +200,7 @@ var script = {
           }
           this.box = Object.assign({}, this.box, {x: x, y: y, w: w, h: h});
         }
-      }
-    },
+      }    },
     setResizing: function setResizing(direction) {
       var ref = this;
       var box = ref.box;
@@ -378,19 +362,19 @@ var server = createInjectorSSR;/* script */
 var __vue_script__ = script;
 
 /* template */
-var __vue_render__ = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"vp",on:{"mousewheel":_vm.mouseWheel,"mousedown":_vm.mouseDown,"mouseup":_vm.mouseUp,"mousemove":_vm.mouseMove,"contextmenu":function($event){$event.preventDefault();}}},[_vm._ssrNode("<div class=\"movable bgoverlap\""+(_vm._ssrStyle(null,_vm.bgOverlapStyle, null))+"></div> <img"+(_vm._ssrAttr("src",_vm.src))+" draggable=\"false\" class=\"movable\""+(_vm._ssrStyle(null,_vm.bgImageStyle, null))+"> "+((_vm.box.actived)?("<div class=\"movable box\""+(_vm._ssrStyle(null,_vm.boxStyle, null))+"><div class=\"vp fill\"><img"+(_vm._ssrAttr("src",_vm.src))+" draggable=\"false\" class=\"movable\""+(_vm._ssrStyle(null,_vm.boxImageStyle, null))+"></div> <div class=\"indicator top left\"></div> <div class=\"indicator top center\"></div> <div class=\"indicator top right\"></div> <div class=\"indicator middle left \"></div> <div class=\"indicator middle right \"></div> <div class=\"indicator bottom left\"></div> <div class=\"indicator bottom center\"></div> <div class=\"indicator bottom right\"></div></div>"):"<!---->"))])};
+var __vue_render__ = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"vp",on:{"mousewheel":function($event){$event.stopPropagation();$event.preventDefault();return _vm.mouseWheel($event)},"mousedown":_vm.mouseDown,"mouseup":_vm.mouseUp,"mousemove":_vm.mouseMove,"contextmenu":function($event){$event.preventDefault();},"dblclick":function($event){_vm.box.actived = false;}}},[_vm._ssrNode("<div class=\"movable bgoverlap\""+(_vm._ssrStyle(null,_vm.bgOverlapStyle, null))+"></div> <img"+(_vm._ssrAttr("src",_vm.src))+" draggable=\"false\" class=\"movable\""+(_vm._ssrStyle(null,_vm.bgImageStyle, null))+"> "+((_vm.box.actived)?("<div class=\"movable box\""+(_vm._ssrStyle(null,_vm.boxStyle, null))+"><div class=\"vp fill\"><img"+(_vm._ssrAttr("src",_vm.src))+" draggable=\"false\" class=\"movable\""+(_vm._ssrStyle(null,_vm.boxImageStyle, null))+"></div> <div class=\"indicator top left\"></div> <div class=\"indicator top center\"></div> <div class=\"indicator top right\"></div> <div class=\"indicator middle left \"></div> <div class=\"indicator middle right \"></div> <div class=\"indicator bottom left\"></div> <div class=\"indicator bottom center\"></div> <div class=\"indicator bottom right\"></div></div>"):"<!---->"))])};
 var __vue_staticRenderFns__ = [];
 
   /* style */
   var __vue_inject_styles__ = function (inject) {
     if (!inject) { return }
-    inject("data-v-69a397aa_0", { source: ".vp[data-v-69a397aa]{position:relative;overflow:hidden;user-select:none}.vp .movable[data-v-69a397aa]{position:absolute}.vp .bgoverlap[data-v-69a397aa]{background:#000}.vp .box[data-v-69a397aa]{border:solid 1px #00f}.vp .fill[data-v-69a397aa]{width:100%;height:100%}.vp .box .indicator[data-v-69a397aa]{position:absolute;background:#00f;border:solid 1px #fff;width:8px;height:8px;margin:-4px 0 0 -4px;box-sizing:border-box}.indicator.top[data-v-69a397aa]{top:0}.indicator.middle[data-v-69a397aa]{top:50%}.indicator.bottom[data-v-69a397aa]{top:100%}.indicator.left[data-v-69a397aa]{left:0}.indicator.center[data-v-69a397aa]{left:50%}.indicator.right[data-v-69a397aa]{left:100%}.indicator.top.left[data-v-69a397aa]{cursor:nw-resize}.indicator.top.center[data-v-69a397aa]{cursor:n-resize}.indicator.top.right[data-v-69a397aa]{cursor:ne-resize}.indicator.middle.left[data-v-69a397aa]{cursor:w-resize}.indicator.middle.right[data-v-69a397aa]{cursor:e-resize}.indicator.bottom.left[data-v-69a397aa]{cursor:sw-resize}.indicator.bottom.center[data-v-69a397aa]{cursor:s-resize}.indicator.bottom.right[data-v-69a397aa]{cursor:se-resize}", map: undefined, media: undefined });
+    inject("data-v-03d7819c_0", { source: ".vp[data-v-03d7819c]{position:relative;overflow:hidden;user-select:none}.vp .movable[data-v-03d7819c]{position:absolute}.vp .bgoverlap[data-v-03d7819c]{background:#000}.vp .box[data-v-03d7819c]{border:solid 1px #00f}.vp .fill[data-v-03d7819c]{width:100%;height:100%}.vp .box .indicator[data-v-03d7819c]{position:absolute;background:#00f;border:solid 1px #fff;width:8px;height:8px;margin:-4px 0 0 -4px;box-sizing:border-box}.indicator.top[data-v-03d7819c]{top:0}.indicator.middle[data-v-03d7819c]{top:50%}.indicator.bottom[data-v-03d7819c]{top:100%}.indicator.left[data-v-03d7819c]{left:0}.indicator.center[data-v-03d7819c]{left:50%}.indicator.right[data-v-03d7819c]{left:100%}.indicator.top.left[data-v-03d7819c]{cursor:nw-resize}.indicator.top.center[data-v-03d7819c]{cursor:n-resize}.indicator.top.right[data-v-03d7819c]{cursor:ne-resize}.indicator.middle.left[data-v-03d7819c]{cursor:w-resize}.indicator.middle.right[data-v-03d7819c]{cursor:e-resize}.indicator.bottom.left[data-v-03d7819c]{cursor:sw-resize}.indicator.bottom.center[data-v-03d7819c]{cursor:s-resize}.indicator.bottom.right[data-v-03d7819c]{cursor:se-resize}", map: undefined, media: undefined });
 
   };
   /* scoped */
-  var __vue_scope_id__ = "data-v-69a397aa";
+  var __vue_scope_id__ = "data-v-03d7819c";
   /* module identifier */
-  var __vue_module_identifier__ = "data-v-69a397aa";
+  var __vue_module_identifier__ = "data-v-03d7819c";
   /* functional template */
   var __vue_is_functional_template__ = false;
 
