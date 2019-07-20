@@ -1,5 +1,5 @@
 # VueCrop
-VueCrop is a lightweight cropping component less than 250 lines of code all in a single file, no external dependency, and yet, still, provides suffient functionalities for photo cropping
+VueCrop is a lightweight cropping component less than 250 lines of code all in a single file, no external dependency, and yet still, provides suffient functionalities for photo cropping
 
 # Demo
 
@@ -10,6 +10,7 @@ https://klesh.github.io/vue-crop
 ## CDN
 
 ```vue
+<script src="https://unpkg.com/vue@2.6.10/dist/vue.min.js"></script>
 <script src="https://unpkg.com/@klesh/vue-crop@1.0.0/dist/vue-crop.min.js"></script>
 
 <template>
@@ -21,7 +22,6 @@ https://klesh.github.io/vue-crop
 <script>
 var app = new Vue({
   el: '#app',
-  components: {VueCrop: VueCrop.default},
   data: {
     ratio: 0,
     box: null,
@@ -67,8 +67,8 @@ var app = new Vue({
 $ npm install @klesh/vue-crop
 ```
 
-```vue
-import VueCrop from 'vue-crop';
+```js
+import VueCrop from '@klesh/vue-crop';
 
 var app = new Vue({
   el: '#app',
